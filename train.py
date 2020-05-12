@@ -1,22 +1,26 @@
+import argparse
+import os
+from datetime import datetime
+
 import torch.nn as nn
 import torch.optim
-from model.unet import UNet
-from dataset.video_dataset import VideoDataset
 from torch.utils.data import DataLoader
-import argparse
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from datetime import datetime
-import os
 
-def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname):
+from dataset.video_dataset import VideoDataset
+from model.unet import UNet
+
+
+def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname, summary_writer):
     for epoch in range(args.epochs):
-        print(f'Epoch {epoch}')
+        tqdm.write(f'Epoch {epoch}')
 
         model.train()
         # Total loss so far in the epoch
         running_loss = 0.0
 
-        dataloader_tqdm = tqdm(train_dataloader, smoothing=0, ncols=80)
+        dataloader_tqdm = tqdm(train_dataloader)
         for batch_idx, batch in enumerate(dataloader_tqdm):
             L_channel = batch[:, 0:1, :, :]
             ab_channels = batch[:, [1, 2], :, :]
@@ -30,11 +34,12 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, c
                 optimizer.step()
 
             running_loss += loss.item()
-            num_iter_so_far = (batch_idx + 1) * args.log_interval
-            average_train_loss = running_loss / num_iter_so_far
+            average_loss = running_loss / (batch_idx + 1)
 
             dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
-                                        average_loss='{:.2f}'.format(average_train_loss))
+                                        average_loss='{:.2f}'.format(average_loss))
+
+        eval(model, criterion, val_dataloader)
 
         torch.save({
             'epoch': epoch,
@@ -44,10 +49,12 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, c
 
 def eval(model, criterion, dataloader):
     model.eval()
+    # Total loss so far in the epoch
+    running_loss = 0.0
 
-    print('Evaluating...')
-    dataloader_tqdm = tqdm(dataloader, smoothing=0, ncols=80)
-    for batch in dataloader_tqdm:
+    tqdm.write('Evaluating...')
+    dataloader_tqdm = tqdm(dataloader)
+    for batch_idx, batch in enumerate(dataloader_tqdm):
         L_channel = batch[:, 0:1, :, :]
         ab_channels = batch[:, [1, 2], :, :]
 
@@ -55,7 +62,10 @@ def eval(model, criterion, dataloader):
             output = model(L_channel)
             loss = criterion(ab_channels, output)
 
-        dataloader_tqdm.set_prefix(loss='{:.2f}'.format(loss.item()), refresh=False)
+        running_loss += loss.item()
+        average_loss = running_loss / (batch_idx + 1)
+        dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
+                                    average_loss='{:.2f}'.format(average_loss))
 
 
 def main():
@@ -70,11 +80,13 @@ def main():
     parser.add_argument('--log-interval', default=1, type=int)
     args = parser.parse_args()
 
-    checkpoint_dirname = "checkpoint/lr{}_{}".format(
+    experiment_name = 'lr{}_{}'.format(
         args.lr,
-        str(datetime.now())[:-7].replace(" ", "-").replace(":", "-"),
+        str(datetime.now())[:-7].replace(" ", "-").replace(":", "-")
     )
 
+    summary_writer = SummaryWriter(os.path.join('tensorboard', experiment_name))
+    checkpoint_dirname = os.path.join('checkpoint', experiment_name)
     os.makedirs(checkpoint_dirname, exist_ok=True)
 
     train_dataset = VideoDataset(args.train)
@@ -88,8 +100,9 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.L1Loss()
 
-    train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname)
+    train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname, summary_writer)
 
+    eval(model, criterion, test_dataloader)
 
 if __name__ == '__main__':
     main()
