@@ -12,7 +12,7 @@ from dataset.video_dataset import VideoDataset
 from model.unet import UNet
 
 
-def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname, summary_writer):
+def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device, checkpoint_dirname, summary_writer):
     for epoch in range(args.epochs):
         tqdm.write(f'Epoch {epoch}')
 
@@ -22,6 +22,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, c
 
         dataloader_tqdm = tqdm(train_dataloader)
         for batch_idx, batch in enumerate(dataloader_tqdm):
+            batch = batch.to(device)
             L_channel = batch[:, 0:1, :, :]
             ab_channels = batch[:, [1, 2], :, :]
 
@@ -37,24 +38,26 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, c
             average_loss = running_loss / (batch_idx + 1)
 
             dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
-                                        average_loss='{:.2f}'.format(average_loss))
+                                        avg_train_loss='{:.2f}'.format(average_loss))
 
-        eval(model, criterion, val_dataloader)
+        tqdm.write('Evaluating on val...')
+        eval(model, criterion, val_dataloader, device)
 
-        torch.save({
-            'epoch': epoch,
-            'model_weights': model.state_dict()
-        }, os.path.join(checkpoint_dirname, f'epoch{epoch}.pkl'))
+        if (epoch + 1) % args.checkpoint_interval == 0:
+            torch.save({
+                'epoch': epoch,
+                'model_weights': model.state_dict()
+            }, os.path.join(checkpoint_dirname, f'epoch{epoch}.pkl'))
 
 
-def eval(model, criterion, dataloader):
+def eval(model, criterion, dataloader, device):
     model.eval()
     # Total loss so far in the epoch
     running_loss = 0.0
 
-    tqdm.write('Evaluating...')
     dataloader_tqdm = tqdm(dataloader)
     for batch_idx, batch in enumerate(dataloader_tqdm):
+        batch = batch.to(device)
         L_channel = batch[:, 0:1, :, :]
         ab_channels = batch[:, [1, 2], :, :]
 
@@ -65,7 +68,7 @@ def eval(model, criterion, dataloader):
         running_loss += loss.item()
         average_loss = running_loss / (batch_idx + 1)
         dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
-                                    average_loss='{:.2f}'.format(average_loss))
+                                    avg_val_loss='{:.2f}'.format(average_loss))
 
 
 def main():
@@ -78,7 +81,16 @@ def main():
     parser.add_argument('--batch-size', default=1, type=int)
     parser.add_argument('--num-workers', help='Number of data loading workers', default=1, type=int)
     parser.add_argument('--log-interval', default=1, type=int)
+    parser.add_argument('--cuda', default=True)
+    parser.add_argument('--cuda-device-ids', default='0')
+    parser.add_argument('--checkpoint-interval', help='Saving checkpoint per number of epochs', default=1, type=int)
     args = parser.parse_args()
+
+    if args.cuda:
+        assert torch.cuda.is_available()
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
 
     experiment_name = 'lr{}_{}'.format(
         args.lr,
@@ -96,13 +108,18 @@ def main():
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    model: UNet = UNet()
+    model = UNet().to(device)
+    if args.cuda:
+        model = torch.nn.DataParallel(model)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     criterion = nn.L1Loss()
 
-    train(model, optimizer, criterion, train_dataloader, val_dataloader, args, checkpoint_dirname, summary_writer)
+    train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device,
+          checkpoint_dirname, summary_writer)
 
-    eval(model, criterion, test_dataloader)
+    tqdm.write('Evaluating on test...')
+    eval(model, criterion, test_dataloader, device)
 
 if __name__ == '__main__':
     main()
