@@ -4,34 +4,44 @@ import torch.nn as nn
 class UNetEncoderBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, max_pool: bool = True):
         super(UNetEncoderBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+        self.convs = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
         if max_pool:
             self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True)
         else:
-            self.max_pool = None  # TODO necessary?
-
-        self.relu = nn.ReLU()
+            self.max_pool = None
 
     def forward(self, x):
-        self.conv_output = self.relu(self.conv2(self.relu(self.conv1(x))))
+        self.conv_output = self.convs(x)
         return self.max_pool(self.conv_output) if self.max_pool else self.conv_output
 
 
 class UNetDecoderBlock(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int):
         super(UNetDecoderBlock, self).__init__()
+        out_channels = in_channels // 2
         self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
-        self.relu = nn.ReLU()
+        self.convs = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+        )
 
     def forward(self, x: torch.tensor, encoder_output: torch.tensor):
         # In case the upsampled dimensions are larger than those of encoder output, truncate the tensor
         upsampled = self.deconv(x)[:, :, :encoder_output.shape[2], :encoder_output.shape[3]]
         concatenated = torch.cat([encoder_output, upsampled], dim=1)
-        return self.relu(self.conv2(self.relu(self.conv1(concatenated))))
+        return self.convs(concatenated)
 
 
 class UNet(nn.Module):
@@ -39,7 +49,6 @@ class UNet(nn.Module):
 
     def __init__(self):
         super(UNet, self).__init__()
-        # TODO: assuming input & output dim of 480x360
         self.encoders = nn.ModuleList([
             UNetEncoderBlock(1, 64),  # 480x360x1 => 240x180x64
             UNetEncoderBlock(64, 128),  # 240x180x64 => 120x90x128
@@ -49,10 +58,10 @@ class UNet(nn.Module):
         ])
 
         self.decoders = nn.ModuleList([
-            UNetDecoderBlock(1024, 512),  # 30x23x1024 => 60x46x512 (throw out last row)
-            UNetDecoderBlock(512, 256),  # 60x45x512 => 120x90x256
-            UNetDecoderBlock(256, 128),  # 120x90x256 => 240x180x128
-            UNetDecoderBlock(128, 64),  # 240x180x128 => 480x360x64
+            UNetDecoderBlock(1024),  # 30x23x1024 => 60x46x512 (throw out last row)
+            UNetDecoderBlock(512),  # 60x45x512 => 120x90x256
+            UNetDecoderBlock(256),  # 120x90x256 => 240x180x128
+            UNetDecoderBlock(128),  # 240x180x128 => 480x360x64
         ])
 
         self.conv_final = nn.Conv2d(64, 2, kernel_size=1, padding=0)  # 480x360x64 => 480x360x2
