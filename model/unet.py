@@ -28,8 +28,10 @@ class UNetDecoderBlock(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x: torch.tensor, encoder_output: torch.tensor):
-        concatenated = torch.cat([encoder_output, x], dim=1)
-        return self.relu(self.conv2(self.relu(self.conv1(self.deconv(concatenated)))))
+        # In case the upsampled dimensions are larger than those of encoder output, truncate the tensor
+        upsampled = self.deconv(x)[:, :, :encoder_output.shape[2], :encoder_output.shape[3]]
+        concatenated = torch.cat([encoder_output, upsampled], dim=1)
+        return self.relu(self.conv2(self.relu(self.conv1(concatenated))))
 
 
 class UNet(nn.Module):
