@@ -81,7 +81,7 @@ def main():
     parser.add_argument('--batch-size', default=1, type=int)
     parser.add_argument('--num-workers', help='Number of data loading workers', default=1, type=int)
     parser.add_argument('--log-interval', default=1, type=int)
-    parser.add_argument('--cuda', default=True)
+    parser.add_argument('--cuda', default=False, action='store_true')
     parser.add_argument('--cuda-device-ids', default='0')
     parser.add_argument('--checkpoint-interval', help='Saving checkpoint per number of epochs', default=1, type=int)
     args = parser.parse_args()
