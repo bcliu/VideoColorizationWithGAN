@@ -12,6 +12,7 @@ class UNetEncoderBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
         )
+        self.conv_output = None
 
         if max_pool:
             self.max_pool = nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True)
