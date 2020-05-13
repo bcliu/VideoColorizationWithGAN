@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from dataset.video_dataset import VideoDataset
 from model.unet import UNet
+import json
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device, checkpoint_dirname, summary_writer):
@@ -40,14 +41,26 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
             dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
                                         avg_train_loss='{:.2f}'.format(average_loss))
 
-        tqdm.write('Evaluating on val...')
-        eval(model, criterion, val_dataloader, device)
+            if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
+                torch.save({
+                    'epoch': epoch,
+                    'iter': batch_idx,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'train_loss': average_loss,
+                }, os.path.join(checkpoint_dirname, f'epoch{epoch}_iter{batch_idx}.pt'))
 
-        if (epoch + 1) % args.checkpoint_interval == 0:
+        tqdm.write('Evaluating on val...')
+        val_loss = eval(model, criterion, val_dataloader, device)
+
+        if (epoch + 1) % args.checkpoint_epoch_interval == 0:
             torch.save({
                 'epoch': epoch,
-                'model_weights': model.state_dict()
-            }, os.path.join(checkpoint_dirname, f'epoch{epoch}.pkl'))
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'val_loss': val_loss,
+                'train_loss': running_loss / len(dataloader_tqdm),
+            }, os.path.join(checkpoint_dirname, f'epoch{epoch}_end.pt'))
 
 
 def eval(model, criterion, dataloader, device):
@@ -70,6 +83,8 @@ def eval(model, criterion, dataloader, device):
         dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
                                     avg_val_loss='{:.2f}'.format(average_loss))
 
+    return running_loss / len(dataloader_tqdm)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -83,7 +98,9 @@ def main():
     parser.add_argument('--log-interval', default=1, type=int)
     parser.add_argument('--cuda', default=False, action='store_true')
     parser.add_argument('--cuda-device-ids', default='0')
-    parser.add_argument('--checkpoint-interval', help='Saving checkpoint per number of epochs', default=1, type=int)
+    parser.add_argument('--checkpoint-epoch-interval', help='Save checkpoint per number of epochs', default=1, type=int)
+    parser.add_argument('--checkpoint-iter-interval',
+                        help='Save checkpoint per number of iterations', default=None, type=int)
     args = parser.parse_args()
 
     if args.cuda:
@@ -91,6 +108,9 @@ def main():
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
+
+    print(f'Saving checkpoints every {args.checkpoint_epoch_interval} epochs and {args.checkpoint_iter_interval} iterations')
+    print(f'Running on {device.type}')
 
     experiment_name = 'lr{}_{}'.format(
         args.lr,
@@ -100,6 +120,10 @@ def main():
     summary_writer = SummaryWriter(os.path.join('tensorboard', experiment_name))
     checkpoint_dirname = os.path.join('checkpoint', experiment_name)
     os.makedirs(checkpoint_dirname, exist_ok=True)
+
+    # Save parameters to file
+    with open(os.path.join(checkpoint_dirname, 'args.json'), 'w') as f:
+        json.dump(args.__dict__, f, indent=4)
 
     train_dataset = VideoDataset(args.train)
     val_dataset = VideoDataset(args.val)
