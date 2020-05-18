@@ -19,18 +19,20 @@ class ResNetBasedUNet(nn.Module):
         grayscale_conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         grayscale_conv1.load_state_dict(averaged_state_dict)
 
-        self._encoder_layer1 = nn.Sequential(
-            grayscale_conv1,
-            resnet_layers['bn1'],
-            resnet_layers['relu']
-        )
-        self._encoder_layer2 = nn.Sequential(
-            resnet_layers['maxpool'],
-            resnet_layers['layer1']
-        )
-        self._encoder_layer3 = resnet_layers['layer2']
-        self._encoder_layer4 = resnet_layers['layer3']
-        self._encoder_layer5 = resnet_layers['layer4']
+        self._encoders = nn.ModuleList([
+            nn.Sequential(
+                grayscale_conv1,
+                resnet_layers['bn1'],
+                resnet_layers['relu']
+            ),
+            nn.Sequential(
+                resnet_layers['maxpool'],
+                resnet_layers['layer1']
+            ),
+            resnet_layers['layer2'],
+            resnet_layers['layer3'],
+            resnet_layers['layer4'],
+        ])
 
         self._decoders = nn.ModuleList([
             UNetDecoderBlock(512),
@@ -43,19 +45,19 @@ class ResNetBasedUNet(nn.Module):
         self._conv_final = nn.Conv2d(16, 2, kernel_size=1, padding=0)
 
     def forward(self, x):
-        encoder_output1 = self._encoder_layer1(x)
-        encoder_output2 = self._encoder_layer2(encoder_output1)
-        encoder_output3 = self._encoder_layer3(encoder_output2)
-        encoder_output4 = self._encoder_layer4(encoder_output3)
-        encoder_output5 = self._encoder_layer5(encoder_output4)
+        encoder_outputs = []
+        for i in range(len(self._encoders)):
+            encoder_outputs.append(self._encoders[i](x if len(encoder_outputs) == 0 else encoder_outputs[-1]))
 
-        decoder_output1 = self._decoders[0](encoder_output5, encoder_output4)
-        decoder_output2 = self._decoders[1](decoder_output1, encoder_output3)
-        decoder_output3 = self._decoders[2](decoder_output2, encoder_output2)
-        decoder_output4 = self._decoders[3](decoder_output3, encoder_output1)
+        decoder_output = None
+
+        for i in range(len(self._decoders) - 1):
+            decoder_output = self._decoders[i](
+                encoder_outputs[-1] if decoder_output is None else decoder_output,
+                encoder_outputs[-(i + 2)]
+            )
+
         # TODO: concatenate input x?
-        decoder_output5 = self._decoders[4](decoder_output4)
+        decoder_output = self._decoders[4](decoder_output)
 
-        output = self._conv_final(decoder_output5)
-
-        return output
+        return self._conv_final(decoder_output)
