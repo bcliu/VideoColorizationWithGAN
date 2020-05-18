@@ -145,5 +145,6 @@ def main():
     tqdm.write('Evaluating on test...')
     eval(model, criterion, test_dataloader, device)
 
+
 if __name__ == '__main__':
     main()
