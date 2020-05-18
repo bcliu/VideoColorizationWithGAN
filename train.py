@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from dataset.video_dataset import VideoDataset
 from model.unet import UNet
+from model.resnet_unet import ResNetBasedUNet
 import json
 
 
@@ -132,7 +133,7 @@ def main():
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    model = UNet().to(device)
+    model = ResNetBasedUNet().to(device)
     if args.cuda:
         model = torch.nn.DataParallel(model)
 

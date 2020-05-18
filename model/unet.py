@@ -26,12 +26,13 @@ class UNetEncoderBlock(nn.Module):
 
 
 class UNetDecoderBlock(nn.Module):
-    def __init__(self, in_channels: int):
+    def __init__(self, in_channels: int, conv_input_channels: int = None):
         super(UNetDecoderBlock, self).__init__()
         out_channels = in_channels // 2
         self.deconv = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
         self.convs = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1),
+            nn.Conv2d(in_channels if conv_input_channels is None else conv_input_channels,
+                      out_channels, kernel_size=3, padding=1),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1),
@@ -39,9 +40,14 @@ class UNetDecoderBlock(nn.Module):
             nn.ReLU(),
         )
 
-    def forward(self, x: torch.tensor, encoder_output: torch.tensor):
+    def forward(self, x: torch.tensor, encoder_output: torch.tensor = None):
+        upsampled = self.deconv(x)
+
+        if encoder_output is None:
+            return self.convs(upsampled)
+
         # In case the upsampled dimensions are larger than those of encoder output, truncate the tensor
-        upsampled = self.deconv(x)[:, :, :encoder_output.shape[2], :encoder_output.shape[3]]
+        upsampled = upsampled[:, :, :encoder_output.shape[2], :encoder_output.shape[3]]
         concatenated = torch.cat([encoder_output, upsampled], dim=1)
         return self.convs(concatenated)
 
