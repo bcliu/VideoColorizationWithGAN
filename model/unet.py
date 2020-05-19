@@ -56,21 +56,21 @@ class UNet(nn.Module):
     def __init__(self):
         super(UNet, self).__init__()
         self._encoders = nn.ModuleList([
-            UNetEncoderBlock(1, 64),  # 480x360x1 => 240x180x64
-            UNetEncoderBlock(64, 128),  # 240x180x64 => 120x90x128
-            UNetEncoderBlock(128, 256),  # 120x90x128 => 60x45x256
-            UNetEncoderBlock(256, 512),  # 60x45x256 => 30x23x512
-            UNetEncoderBlock(512, 1024, max_pool=False),  # 30x23x512 => 30x23x1024
+            UNetEncoderBlock(1, 64),
+            UNetEncoderBlock(64, 128),
+            UNetEncoderBlock(128, 256),
+            UNetEncoderBlock(256, 512),
+            UNetEncoderBlock(512, 1024, max_pool=False),
         ])
 
         self._decoders = nn.ModuleList([
-            UNetDecoderBlock(1024),  # 30x23x1024 => 60x46x512 (throw out last row)
-            UNetDecoderBlock(512),  # 60x45x512 => 120x90x256
-            UNetDecoderBlock(256),  # 120x90x256 => 240x180x128
-            UNetDecoderBlock(128),  # 240x180x128 => 480x360x64
+            UNetDecoderBlock(1024),
+            UNetDecoderBlock(512),
+            UNetDecoderBlock(256),
+            UNetDecoderBlock(128),
         ])
 
-        self._conv_final = nn.Conv2d(64, 2, kernel_size=1, padding=0)  # 480x360x64 => 480x360x2
+        self._conv_final = nn.Conv2d(64, 2, kernel_size=1, padding=0)
 
     def forward(self, x):
         output = x

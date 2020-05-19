@@ -21,7 +21,8 @@ def load_color_image(path):
     return original, L_channel
 
 
-def create_color_image_from_output(output, L_channel):
+def predict(model, L_channel, device):
+    output = model(torch.tensor(L_channel).to(device))
     ab_channels = output.squeeze().cpu().detach().numpy()
     Lab = np.concatenate([L_channel[0], ab_channels], axis=0)
     Lab = Lab.transpose((1, 2, 0))
