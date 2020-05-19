@@ -19,7 +19,8 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
 
         model.train()
         # Total loss so far in the epoch
-        running_loss = 0.0
+        running_loss = 0
+        batch_block_loss = 0
 
         dataloader_tqdm = tqdm(train_dataloader)
         for batch_idx, batch in enumerate(dataloader_tqdm):
@@ -36,10 +37,17 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
                 optimizer.step()
 
             running_loss += loss.item()
+            batch_block_loss += loss.item()
             average_loss = running_loss / (batch_idx + 1)
 
-            dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
-                                        avg_train_loss='{:.2f}'.format(average_loss))
+            dataloader_tqdm.set_postfix(loss='{:.3f}'.format(loss.item()),
+                                        avg_train_loss='{:.3f}'.format(average_loss))
+
+            if (batch_idx + 1) % 100 == 0:
+                summary_writer.add_scalar('Last 100 batches average train loss',
+                                          batch_block_loss / 100,
+                                          epoch * len(train_dataloader) + batch_idx)
+                batch_block_loss = 0
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
                 torch.save({
@@ -61,6 +69,9 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
                 'val_loss': val_loss,
                 'train_loss': running_loss / len(dataloader_tqdm),
             }, os.path.join(checkpoint_dirname, f'epoch{epoch}_end.pt'))
+
+        summary_writer.add_scalar('Epoch train loss', running_loss / len(train_dataloader), epoch)
+        summary_writer.add_scalar('Epoch val loss', val_loss, epoch)
 
 
 def eval(model, criterion, dataloader, device):
