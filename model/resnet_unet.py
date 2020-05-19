@@ -61,3 +61,7 @@ class ResNetBasedUNet(nn.Module):
         decoder_output = self._decoders[4](decoder_output)
 
         return self._conv_final(decoder_output)
+
+    def set_encoders_requires_grad(self, requires_grad: bool):
+        for param in self._encoders.parameters():
+            param.requires_grad = requires_grad
