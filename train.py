@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from datetime import datetime
 
@@ -9,9 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataset.video_dataset import VideoDataset
-from model.unet import UNet
 from model.resnet_unet import ResNetBasedUNet
-import json
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device, checkpoint_dirname, summary_writer):
@@ -103,6 +102,7 @@ def main():
     parser.add_argument('--checkpoint-epoch-interval', help='Save checkpoint per number of epochs', default=1, type=int)
     parser.add_argument('--checkpoint-iter-interval',
                         help='Save checkpoint per number of iterations', default=None, type=int)
+    parser.add_argument('--experiment-prefix', default=None, type=str)
     args = parser.parse_args()
 
     if args.cuda:
@@ -114,9 +114,10 @@ def main():
     print(f'Saving checkpoints every {args.checkpoint_epoch_interval} epochs and {args.checkpoint_iter_interval} iterations')
     print(f'Running on {device.type}')
 
-    experiment_name = 'lr{}_{}'.format(
+    experiment_name = 'lr{}_{}{}'.format(
         args.lr,
-        str(datetime.now())[:-7].replace(" ", "-").replace(":", "-")
+        str(datetime.now())[:-7].replace(" ", "-").replace(":", "-"),
+        '' if args.experiment_prefix is None else f'_{args.experiment_prefix}'
     )
 
     summary_writer = SummaryWriter(os.path.join('tensorboard', experiment_name))
