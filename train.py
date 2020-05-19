@@ -163,6 +163,8 @@ def main():
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
     criterion = nn.L1Loss()
 
+    summary_writer.add_graph(model.module, next(iter(train_dataloader))[:, 0:1].to(device))
+
     train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device,
           checkpoint_dirname, summary_writer)
 

@@ -46,8 +46,6 @@ class UNetDecoderBlock(nn.Module):
         if encoder_output is None:
             return self.convs(upsampled)
 
-        # In case the upsampled dimensions are larger than those of encoder output, truncate the tensor
-        upsampled = upsampled[:, :, :encoder_output.shape[2], :encoder_output.shape[3]]
         concatenated = torch.cat([encoder_output, upsampled], dim=1)
         return self.convs(concatenated)
 
