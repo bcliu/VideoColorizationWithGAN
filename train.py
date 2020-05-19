@@ -80,8 +80,8 @@ def eval(model, criterion, dataloader, device):
 
         running_loss += loss.item()
         average_loss = running_loss / (batch_idx + 1)
-        dataloader_tqdm.set_postfix(loss='{:.2f}'.format(loss.item()),
-                                    avg_val_loss='{:.2f}'.format(average_loss))
+        dataloader_tqdm.set_postfix(loss='{:.3f}'.format(loss.item()),
+                                    avg_val_loss='{:.3f}'.format(average_loss))
 
     return running_loss / len(dataloader_tqdm)
 
@@ -102,6 +102,7 @@ def main():
     parser.add_argument('--checkpoint-epoch-interval', help='Save checkpoint per number of epochs', default=1, type=int)
     parser.add_argument('--checkpoint-iter-interval',
                         help='Save checkpoint per number of iterations', default=None, type=int)
+    parser.add_argument('--load-checkpoint', default=None, type=str)
     parser.add_argument('--experiment-prefix', default=None, type=str)
     args = parser.parse_args()
 
@@ -143,6 +144,11 @@ def main():
     if args.cuda:
         model = torch.nn.DataParallel(model)
 
+    if args.load_checkpoint is not None:
+        saved_model = torch.load(args.load_checkpoint)
+        model.load_state_dict(saved_model['model_state_dict'])
+
+    print(f'Number of param tensors to be optimized: {len(list(filter(lambda p: p.requires_grad, model.parameters())))}')
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
     criterion = nn.L1Loss()
 
