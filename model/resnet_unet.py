@@ -36,7 +36,7 @@ class ResNetBasedUNet(nn.Module):
             UNetDecoderBlock(32, conv_input_channels=16),
         ])
 
-        self._conv_final = nn.Conv2d(16, 2, kernel_size=1, padding=0)
+        self._conv_final = nn.Conv2d(16, 3, kernel_size=1, padding=0)
 
     def forward(self, x):
         encoder_outputs = []

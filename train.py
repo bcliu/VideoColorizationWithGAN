@@ -24,10 +24,9 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
         batch_block_loss = 0
 
         dataloader_tqdm = tqdm(train_dataloader)
-        for batch_idx, (normalized_grayscale, L_channel, normalized_original) in enumerate(dataloader_tqdm):
-            normalized_grayscale = normalized_grayscale.to(device)
-            L_channel = L_channel.to(device)
-            normalized_original = normalized_original.to(device)
+        for batch_idx, batch in enumerate(dataloader_tqdm):
+            normalized_grayscale = batch[0].to(device)
+            normalized_original = batch[1].to(device)
 
             optimizer.zero_grad()
 
