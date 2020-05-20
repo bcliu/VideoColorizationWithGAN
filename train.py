@@ -24,16 +24,16 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, d
         batch_block_loss = 0
 
         dataloader_tqdm = tqdm(train_dataloader)
-        for batch_idx, batch in enumerate(dataloader_tqdm):
-            batch = batch.to(device)
-            L_channel = batch[:, 0:1, :, :]
-            ab_channels = batch[:, [1, 2], :, :]
+        for batch_idx, (normalized_grayscale, L_channel, normalized_original) in enumerate(dataloader_tqdm):
+            normalized_grayscale = normalized_grayscale.to(device)
+            L_channel = L_channel.to(device)
+            normalized_original = normalized_original.to(device)
 
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
-                output = model(L_channel)
-                loss = criterion(ab_channels, output)
+                output = model(normalized_grayscale)
+                loss = criterion(normalized_original, output)
                 loss.backward()
                 optimizer.step()
 
@@ -216,7 +216,7 @@ def main():
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
     criterion = nn.L1Loss()
 
-    summary_writer.add_graph(model.module, next(iter(train_dataloader))[:, 0:1].to(device))
+    summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 
     train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device,
           checkpoint_dirname, summary_writer)

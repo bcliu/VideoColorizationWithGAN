@@ -13,15 +13,9 @@ class ResNetBasedUNet(nn.Module):
         super(ResNetBasedUNet, self).__init__()
         resnet_layers = models.resnet34(pretrained=True)._modules
 
-        # Averaging first layer weights so that it can take in grayscale input
-        conv1_weight = resnet_layers['conv1'].state_dict()['weight']
-        averaged_state_dict = OrderedDict([('weight', conv1_weight.mean(dim=1, keepdim=True))])
-        grayscale_conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        grayscale_conv1.load_state_dict(averaged_state_dict)
-
         self._encoders = nn.ModuleList([
             nn.Sequential(
-                grayscale_conv1,
+                resnet_layers['conv1'],
                 resnet_layers['bn1'],
                 resnet_layers['relu']
             ),
