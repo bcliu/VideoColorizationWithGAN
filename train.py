@@ -55,7 +55,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
             if (batch_idx + 1) % 200 == 0:
                 log_weights(model, summary_writer, iter_idx)
 
-            if (batch_idx + 1) % 5 == 0:
+            if (batch_idx + 1) % 500 == 0:
                 log_predictions(model, device, summary_writer, iter_idx)
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:

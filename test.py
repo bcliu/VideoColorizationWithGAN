@@ -30,7 +30,8 @@ def unnormalize(image):
 def predict(model, image, device):
     with torch.no_grad():
         output = unnormalize(model(image.to(device)))
-    return output
+    clamped = torch.clamp(output, 0, 1)
+    return clamped
 
 
 def main():
