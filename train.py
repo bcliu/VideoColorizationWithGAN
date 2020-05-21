@@ -3,18 +3,19 @@ import json
 import os
 from datetime import datetime
 
-import torch.nn as nn
 import torch.optim
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from test import load_bw_image, load_color_image, predict
 
 from dataset.video_dataset import VideoDataset
+from model.loss import FeatureAndStyleLoss
 from model.resnet_unet import ResNetBasedUNet
+from test import load_bw_image, load_color_image, predict
 
 
-def train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device, checkpoint_dirname, summary_writer):
+def train(model, optimizer, criterion, train_dataloader, val_dataloader,
+          args, device, checkpoint_dirname, summary_writer):
     for epoch in range(args.epochs):
         tqdm.write(f'Epoch {epoch}')
 
@@ -158,7 +159,7 @@ def main():
     parser.add_argument('--epochs', help='Number of epochs', default=2, type=int)
     parser.add_argument('--lr', help='Learning rate', default=0.001, type=float)
     parser.add_argument('--batch-size', default=1, type=int)
-    parser.add_argument('--freeze-encoders', default=False, action='store_true')
+    parser.add_argument('--freeze-encoder', default=False, action='store_true')
     parser.add_argument('--num-workers', help='Number of data loading workers', default=1, type=int)
     parser.add_argument('--cuda', default=False, action='store_true')
     parser.add_argument('--cuda-device-ids', default='0')
@@ -201,7 +202,7 @@ def main():
 
     model = ResNetBasedUNet().to(device)
 
-    if args.freeze_encoders:
+    if args.freeze_encoder:
         model.set_encoders_requires_grad(False)
 
     if args.cuda:
@@ -213,7 +214,7 @@ def main():
 
     print(f'Number of param tensors to be optimized: {len(list(filter(lambda p: p.requires_grad, model.parameters())))}')
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    criterion = nn.L1Loss()
+    criterion = FeatureAndStyleLoss(device)
 
     summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 
