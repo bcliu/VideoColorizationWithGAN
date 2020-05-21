@@ -46,16 +46,16 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
 
             iter_idx = epoch * len(train_dataloader) + batch_idx
 
-            if (batch_idx + 1) % 100 == 0:
-                summary_writer.add_scalar('Last 100 batches average train loss',
-                                          batch_block_loss / 100,
+            if (batch_idx + 1) % 50 == 0:
+                summary_writer.add_scalar('Last 50 batches average train loss',
+                                          batch_block_loss / 50,
                                           iter_idx)
                 batch_block_loss = 0
 
-            if (batch_idx + 1) % 500 == 0:
+            if (batch_idx + 1) % 200 == 0:
                 log_weights(model, summary_writer, iter_idx)
 
-            if (batch_idx + 1) % 1000 == 0:
+            if (batch_idx + 1) % 500 == 0:
                 log_predictions(model, device, summary_writer, iter_idx)
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
@@ -91,13 +91,12 @@ def eval(model, criterion, dataloader, device):
 
     dataloader_tqdm = tqdm(dataloader)
     for batch_idx, batch in enumerate(dataloader_tqdm):
-        batch = batch.to(device)
-        L_channel = batch[:, 0:1, :, :]
-        ab_channels = batch[:, [1, 2], :, :]
+        normalized_grayscale = batch[0].to(device)
+        normalized_original = batch[1].to(device)
 
         with torch.no_grad():
-            output = model(L_channel)
-            loss = criterion(ab_channels, output)
+            output = model(normalized_grayscale)
+            loss = criterion(normalized_original, output)
 
         running_loss += loss.item()
         average_loss = running_loss / (batch_idx + 1)
