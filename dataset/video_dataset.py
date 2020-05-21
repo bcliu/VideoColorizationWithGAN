@@ -7,6 +7,20 @@ from skimage import io
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+imagenet_mean = [0.485, 0.456, 0.406]
+imagenet_std = [0.229, 0.224, 0.225]
+
+colored_to_grayscale = transforms.Compose([
+    transforms.Grayscale(num_output_channels=3),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+])
+
+normalize = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=imagenet_mean, std=imagenet_std),
+])
+
 
 class VideoDataset(Dataset):
     def __init__(self, path, get_L_channel: bool = False):
@@ -16,17 +30,6 @@ class VideoDataset(Dataset):
         self.files = []
         for filename in os.listdir(path):
             self.files.append(filename)
-
-        self._grayscale_transforms = transforms.Compose([
-            transforms.Grayscale(num_output_channels=3),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
-
-        self._original_transforms = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ])
 
     def __getitem__(self, index):
         path = os.path.join(self.path, self.files[index])
@@ -41,8 +44,8 @@ class VideoDataset(Dataset):
 
         PIL_image = transforms.ToPILImage()(original)
 
-        normalized_grayscale = self._grayscale_transforms(PIL_image)
-        normalized_original = self._original_transforms(PIL_image)
+        normalized_grayscale = colored_to_grayscale(PIL_image)
+        normalized_original = normalize(PIL_image)
 
         if self.get_L_channel:
             return normalized_grayscale, normalized_original, L_channel

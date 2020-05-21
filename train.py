@@ -11,7 +11,7 @@ from tqdm import tqdm
 from dataset.video_dataset import VideoDataset
 from model.loss import FeatureAndStyleLoss
 from model.resnet_unet import ResNetBasedUNet
-from test import load_bw_image, load_color_image, predict
+from test import load_grayscale, load_grayscale_from_colored, predict
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader,
@@ -95,7 +95,7 @@ def eval(model, criterion, dataloader, device):
         L_channel = batch[:, 0:1, :, :]
         ab_channels = batch[:, [1, 2], :, :]
 
-        with torch.set_grad_enabled(False):
+        with torch.no_grad():
             output = model(L_channel)
             loss = criterion(ab_channels, output)
 
@@ -107,7 +107,7 @@ def eval(model, criterion, dataloader, device):
     return running_loss / len(dataloader_tqdm)
 
 
-def log_predictions(model, device, summary_writer: SummaryWriter, iter: int):
+def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int):
     color_images = {
         'train1': '../../datasets/train/qing-ep38-03894.png',
         'train2': '../../datasets/train/qing-ep49-04922.png',
@@ -121,15 +121,19 @@ def log_predictions(model, device, summary_writer: SummaryWriter, iter: int):
         'cityhall_far': '../bw-frames/00056.png',
     }
 
+    model.eval()
+
     for k, v in color_images.items():
-        _, L_channel = load_color_image(v)
-        rgb_output = predict(model, L_channel, device).transpose((2, 0, 1))
-        summary_writer.add_image(k, rgb_output, iter)
+        img = load_grayscale_from_colored(v).unsqueeze(0)
+        rgb_output = predict(model, img, device)
+        summary_writer.add_image(k, rgb_output, iter_idx)
 
     for k, v in bw_images.items():
-        L_channel = load_bw_image(v)
-        rgb_output = predict(model, L_channel, device).transpose((2, 0, 1))
-        summary_writer.add_image(k, rgb_output, iter)
+        img = load_grayscale(v).unsqueeze(0)
+        rgb_output = predict(model, img, device)
+        summary_writer.add_image(k, rgb_output, iter_idx)
+
+    model.train()
 
 
 def log_weights(model, summary_writer, iter_idx: int):
