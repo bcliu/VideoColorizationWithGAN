@@ -22,7 +22,7 @@ class FeatureAndStyleLoss(nn.Module):
         all_layers = list(resnet.children())
         self._resnet_layers = list(filter(FeatureAndStyleLoss._filter_layer, all_layers))
         self._feature_layer_indices = [2, 4, 5, 6, 7]
-        self._layer_weights = [1, 2, 2, 2, 1]
+        self._layer_weights = [10, 4, 2, 2, 1]
 
     @staticmethod
     def _filter_layer(layer):
