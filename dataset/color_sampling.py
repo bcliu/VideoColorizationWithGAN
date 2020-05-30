@@ -13,9 +13,9 @@ def sample_color_hints(images):
 
     B, C, H, W = ab_channels.shape
 
-    n_samples_list = np.random.geometric(1 / 8, B)
+    n_samples_list = np.random.geometric(1 / 32, B)
     ab_hint = torch.zeros_like(ab_channels)
-    ab_mask = torch.zeros(B, 1, H, W)
+    ab_mask = torch.zeros((B, 1, H, W), device=ab_hint.device)
 
     bounding_boxes = []
 
@@ -26,7 +26,7 @@ def sample_color_hints(images):
         samples[:, 0] = np.clip(samples[:, 0], a_min=0, a_max=H - 1)
         samples[:, 1] = np.clip(samples[:, 1], a_min=0, a_max=W - 1)
 
-        patch_sizes = np.random.uniform(low=1, high=9, size=n_samples).astype(int)
+        patch_sizes = np.random.uniform(low=1, high=10, size=n_samples).astype(int)
 
         bounding_boxes.append([])
 
