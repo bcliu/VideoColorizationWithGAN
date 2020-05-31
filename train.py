@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from dataset.video_dataset import VideoDataset
+from dataset.user_guided_dataset import UserGuidedVideoDataset
 from model.loss import FeatureAndStyleLoss
 from model.resnet_unet import ResNetBasedUNet
 from test import load_grayscale, load_grayscale_from_colored, predict
@@ -26,14 +26,17 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
 
         dataloader_tqdm = tqdm(train_dataloader)
         for batch_idx, batch in enumerate(dataloader_tqdm):
-            normalized_grayscale = batch[0].to(device)
-            normalized_original = batch[1].to(device)
+            L_channel, ab_channels, ab_hint, ab_mask = batch
+            L_channel = L_channel.to(device)
+            ab_channels = ab_channels.to(device)
+            ab_hint = ab_hint.to(device)
+            ab_mask = ab_mask.to(device)
 
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
-                output = model(normalized_grayscale)
-                loss = criterion(normalized_original, output)
+                output = model(L_channel)
+                loss = criterion(ab_channels, output)
                 loss.backward()
                 optimizer.step()
 
@@ -91,12 +94,15 @@ def eval(model, criterion, dataloader, device):
 
     dataloader_tqdm = tqdm(dataloader)
     for batch_idx, batch in enumerate(dataloader_tqdm):
-        normalized_grayscale = batch[0].to(device)
-        normalized_original = batch[1].to(device)
+        L_channel, ab_channels, ab_hint, ab_mask = batch
+        L_channel = L_channel.to(device)
+        ab_channels = ab_channels.to(device)
+        ab_hint = ab_hint.to(device)
+        ab_mask = ab_mask.to(device)
 
         with torch.no_grad():
-            output = model(normalized_grayscale)
-            loss = criterion(normalized_original, output)
+            output = model(L_channel)
+            loss = criterion(ab_channels, output)
 
         running_loss += loss.item()
         average_loss = running_loss / (batch_idx + 1)
@@ -196,9 +202,9 @@ def main():
     with open(os.path.join(checkpoint_dirname, 'args.json'), 'w') as f:
         json.dump(args.__dict__, f, indent=4)
 
-    train_dataset = VideoDataset(args.train)
-    val_dataset = VideoDataset(args.val)
-    test_dataset = VideoDataset(args.test)
+    train_dataset = UserGuidedVideoDataset(args.train, augmentation=True)
+    val_dataset = UserGuidedVideoDataset(args.val, augmentation=False)
+    test_dataset = UserGuidedVideoDataset(args.test, augmentation=False)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
@@ -219,7 +225,7 @@ def main():
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
     criterion = FeatureAndStyleLoss(device)
 
-    summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
+    # summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 
     train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device,
           checkpoint_dirname, summary_writer)

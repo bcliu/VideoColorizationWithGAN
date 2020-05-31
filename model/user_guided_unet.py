@@ -1,17 +1,14 @@
-from collections import OrderedDict
-
 import torch.nn as nn
 from torchvision import models
 
 from model.unet import UNetDecoderBlock
 
 
-class ResNetBasedUNet(nn.Module):
-    """UNet with a pretrained ResNet as encoder"""
+class UserGuidedUNet(nn.Module):
 
     def __init__(self):
-        super(ResNetBasedUNet, self).__init__()
-        resnet_layers = models.resnet50(pretrained=True)._modules
+        super(UserGuidedUNet, self).__init__()
+        resnet_layers = models.resnet50(pretrained=False)._modules
 
         self._encoders = nn.ModuleList([
             nn.Sequential(
