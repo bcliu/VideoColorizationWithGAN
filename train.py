@@ -7,10 +7,11 @@ import torch.optim
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import torch
 
 from dataset.user_guided_dataset import UserGuidedVideoDataset
 from model.loss import FeatureAndStyleLoss
-from model.resnet_unet import ResNetBasedUNet
+from model.user_guided_unet import UserGuidedUNet
 from test import load_grayscale, load_grayscale_from_colored, predict
 
 
@@ -35,7 +36,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
-                output = model(L_channel)
+                output = model(torch.cat((L_channel, ab_hint, ab_mask), dim=1))
                 loss = criterion(ab_channels, output)
                 loss.backward()
                 optimizer.step()
@@ -101,7 +102,7 @@ def eval(model, criterion, dataloader, device):
         ab_mask = ab_mask.to(device)
 
         with torch.no_grad():
-            output = model(L_channel)
+            output = model(torch.cat((L_channel, ab_hint, ab_mask), dim=1))
             loss = criterion(ab_channels, output)
 
         running_loss += loss.item()
@@ -209,7 +210,7 @@ def main():
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
-    model = ResNetBasedUNet().to(device)
+    model = UserGuidedUNet().to(device)
 
     if args.freeze_encoder:
         model.set_encoders_requires_grad(False)
@@ -223,7 +224,7 @@ def main():
 
     print(f'Number of param tensors to be optimized: {len(list(filter(lambda p: p.requires_grad, model.parameters())))}')
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    criterion = FeatureAndStyleLoss(device)
+    criterion = torch.nn.functional.smooth_l1_loss
 
     # summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 

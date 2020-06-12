@@ -8,47 +8,50 @@ class UserGuidedUNet(nn.Module):
 
     def __init__(self):
         super(UserGuidedUNet, self).__init__()
-        resnet_layers = models.resnet50(pretrained=False)._modules
+        resnet_layers = models.resnet34(pretrained=False)._modules
 
-        self._encoders = nn.ModuleList([
-            nn.Sequential(
-                resnet_layers['conv1'],
-                resnet_layers['bn1'],
-                resnet_layers['relu']
+        self._encoders = nn.ModuleDict({
+            'layer1': nn.Sequential(
+                nn.Conv2d(4, 64, kernel_size=3, padding=1),
+                nn.ReLU(True),
+                nn.Conv2d(64, 64, kernel_size=3, padding=1),
+                nn.ReLU(True),
+                nn.BatchNorm2d(64)
             ),
-            nn.Sequential(
+            'layer2': nn.Sequential(
                 resnet_layers['maxpool'],
                 resnet_layers['layer1']
             ),
-            resnet_layers['layer2'],
-            resnet_layers['layer3'],
-            resnet_layers['layer4'],
-        ])
+            'layer3': resnet_layers['layer2'],
+            'layer4': resnet_layers['layer3'],
+            'layer5': resnet_layers['layer4'],
+        })
 
-        self._decoders = nn.ModuleList([
-            UNetDecoderBlock(512),
-            UNetDecoderBlock(256),
-            UNetDecoderBlock(128),
-            UNetDecoderBlock(64, conv_input_channels=96),
-            UNetDecoderBlock(32, conv_input_channels=16),
-        ])
+        self._decoders = nn.ModuleDict({
+            'layer1': UNetDecoderBlock(512),
+            'layer2': UNetDecoderBlock(256),
+            'layer3': UNetDecoderBlock(128),
+            'layer4': UNetDecoderBlock(64, conv_input_channels=96),
+        })
 
-        self._conv_final = nn.Conv2d(16, 3, kernel_size=1, padding=0)
+        self._conv_final = nn.Sequential(
+            nn.Conv2d(32, 2, kernel_size=1, padding=0),
+            nn.Tanh()
+        )
 
     def forward(self, x):
         encoder_outputs = []
-        for i in range(len(self._encoders)):
-            encoder_outputs.append(self._encoders[i](x if len(encoder_outputs) == 0 else encoder_outputs[-1]))
+        for _, encoder in self._encoders.items():
+            encoder_outputs.append(encoder(x if len(encoder_outputs) == 0 else encoder_outputs[-1]))
 
         decoder_output = None
 
-        for i in range(len(self._decoders) - 1):
-            decoder_output = self._decoders[i](
+        decoder_list = list(self._decoders.values())
+        for i in range(len(self._decoders)):
+            decoder_output = decoder_list[i](
                 encoder_outputs[-1] if decoder_output is None else decoder_output,
                 encoder_outputs[-(i + 2)]
             )
-
-        decoder_output = self._decoders[4](decoder_output)
 
         return self._conv_final(decoder_output)
 

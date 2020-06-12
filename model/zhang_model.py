@@ -11,94 +11,60 @@ class SIGGRAPHGenerator(nn.Module):
         use_bias = True
 
         # Conv1
-        # model1=[nn.ReflectionPad2d(1),]
         model1 = [nn.Conv2d(input_nc, 64, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model1+=[norm_layer(64),]
         model1 += [nn.ReLU(True), ]
-        # model1+=[nn.ReflectionPad2d(1),]
         model1 += [nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model1 += [nn.ReLU(True), ]
         model1 += [norm_layer(64), ]
-        # add a subsampling operation
 
         # Conv2
-        # model2=[nn.ReflectionPad2d(1),]
         model2 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model2+=[norm_layer(128),]
         model2 += [nn.ReLU(True), ]
-        # model2+=[nn.ReflectionPad2d(1),]
         model2 += [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model2 += [nn.ReLU(True), ]
         model2 += [norm_layer(128), ]
-        # add a subsampling layer operation
 
         # Conv3
-        # model3=[nn.ReflectionPad2d(1),]
         model3 = [nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model3+=[norm_layer(256),]
         model3 += [nn.ReLU(True), ]
-        # model3+=[nn.ReflectionPad2d(1),]
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model3+=[norm_layer(256),]
         model3 += [nn.ReLU(True), ]
-        # model3+=[nn.ReflectionPad2d(1),]
         model3 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model3 += [nn.ReLU(True), ]
         model3 += [norm_layer(256), ]
-        # add a subsampling layer operation
 
         # Conv4
-        # model47=[nn.ReflectionPad2d(1),]
         model4 = [nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model4+=[norm_layer(512),]
         model4 += [nn.ReLU(True), ]
-        # model4+=[nn.ReflectionPad2d(1),]
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model4+=[norm_layer(512),]
         model4 += [nn.ReLU(True), ]
-        # model4+=[nn.ReflectionPad2d(1),]
         model4 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model4 += [nn.ReLU(True), ]
         model4 += [norm_layer(512), ]
 
         # Conv5
-        # model47+=[nn.ReflectionPad2d(2),]
         model5 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
-        # model5+=[norm_layer(512),]
         model5 += [nn.ReLU(True), ]
-        # model5+=[nn.ReflectionPad2d(2),]
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
-        # model5+=[norm_layer(512),]
         model5 += [nn.ReLU(True), ]
-        # model5+=[nn.ReflectionPad2d(2),]
         model5 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         model5 += [nn.ReLU(True), ]
         model5 += [norm_layer(512), ]
 
         # Conv6
-        # model6+=[nn.ReflectionPad2d(2),]
         model6 = [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
-        # model6+=[norm_layer(512),]
         model6 += [nn.ReLU(True), ]
-        # model6+=[nn.ReflectionPad2d(2),]
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
-        # model6+=[norm_layer(512),]
         model6 += [nn.ReLU(True), ]
-        # model6+=[nn.ReflectionPad2d(2),]
         model6 += [nn.Conv2d(512, 512, kernel_size=3, dilation=2, stride=1, padding=2, bias=use_bias), ]
         model6 += [nn.ReLU(True), ]
         model6 += [norm_layer(512), ]
 
         # Conv7
-        # model47+=[nn.ReflectionPad2d(1),]
         model7 = [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model7+=[norm_layer(512),]
         model7 += [nn.ReLU(True), ]
-        # model7+=[nn.ReflectionPad2d(1),]
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model7+=[norm_layer(512),]
         model7 += [nn.ReLU(True), ]
-        # model7+=[nn.ReflectionPad2d(1),]
         model7 += [nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model7 += [nn.ReLU(True), ]
         model7 += [norm_layer(512), ]
@@ -106,16 +72,11 @@ class SIGGRAPHGenerator(nn.Module):
         # Conv7
         model8up = [nn.ConvTranspose2d(512, 256, kernel_size=4, stride=2, padding=1, bias=use_bias)]
 
-        # model3short8=[nn.ReflectionPad2d(1),]
         model3short8 = [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
 
-        # model47+=[norm_layer(256),]
         model8 = [nn.ReLU(True), ]
-        # model8+=[nn.ReflectionPad2d(1),]
         model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # model8+=[norm_layer(256),]
         model8 += [nn.ReLU(True), ]
-        # model8+=[nn.ReflectionPad2d(1),]
         model8 += [nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model8 += [nn.ReLU(True), ]
         model8 += [norm_layer(256), ]
@@ -123,13 +84,9 @@ class SIGGRAPHGenerator(nn.Module):
         # Conv9
         model9up = [nn.ConvTranspose2d(256, 128, kernel_size=4, stride=2, padding=1, bias=use_bias), ]
 
-        # model2short9=[nn.ReflectionPad2d(1),]
         model2short9 = [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # add the two feature maps above
 
-        # model9=[norm_layer(128),]
         model9 = [nn.ReLU(True), ]
-        # model9+=[nn.ReflectionPad2d(1),]
         model9 += [nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
         model9 += [nn.ReLU(True), ]
         model9 += [norm_layer(128), ]
@@ -137,13 +94,9 @@ class SIGGRAPHGenerator(nn.Module):
         # Conv10
         model10up = [nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1, bias=use_bias), ]
 
-        # model1short10=[nn.ReflectionPad2d(1),]
         model1short10 = [nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1, bias=use_bias), ]
-        # add the two feature maps above
 
-        # model10=[norm_layer(128),]
         model10 = [nn.ReLU(True), ]
-        # model10+=[nn.ReflectionPad2d(1),]
         model10 += [nn.Conv2d(128, 128, kernel_size=3, dilation=1, stride=1, padding=1, bias=use_bias), ]
         model10 += [nn.LeakyReLU(negative_slope=.2), ]
 

@@ -6,11 +6,9 @@ from skimage import io
 from torch.utils.data import Dataset
 from torchvision import transforms
 import torch
+from dataset.util import normalize_lab
 
 from dataset.color_sampling import sample_color_hints
-
-lab_mean = [0.5, 0.5, 0.5]  # Per Rich Zhang Colorization paper
-lab_std = [0.5, 0.5, 0.5]
 
 
 class UserGuidedVideoDataset(Dataset):
@@ -20,11 +18,6 @@ class UserGuidedVideoDataset(Dataset):
         self.files = []
         for filename in os.listdir(path):
             self.files.append(filename)
-
-        self.normalize_lab = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(lab_mean, lab_std),
-        ])
 
         transform_list = [transforms.ToPILImage()]
         if augmentation:
@@ -38,9 +31,8 @@ class UserGuidedVideoDataset(Dataset):
         path = os.path.join(self.path, self.files[index])
         rgb = self.augmentation(io.imread(path))
         lab = skimage.color.rgb2lab(rgb).astype(np.float32)
-        lab = self.normalize_lab(lab)
-        L_channel = lab[[0]]
-        ab_channels = lab[1:]
+        lab = torch.tensor(lab).permute((2, 0, 1))
+        L_channel, ab_channels = normalize_lab(lab)
 
         ab_hint, ab_mask, _ = sample_color_hints(ab_channels)
         return L_channel, ab_channels, ab_hint, ab_mask
