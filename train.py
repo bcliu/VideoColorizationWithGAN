@@ -3,14 +3,13 @@ import json
 import os
 from datetime import datetime
 
+import torch
 import torch.optim
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import torch
 
 from dataset.user_guided_dataset import UserGuidedVideoDataset
-from model.loss import FeatureAndStyleLoss
 from model.user_guided_unet import UserGuidedUNet
 from test import load_grayscale, load_grayscale_from_colored, predict
 
@@ -224,7 +223,7 @@ def main():
 
     print(f'Number of param tensors to be optimized: {len(list(filter(lambda p: p.requires_grad, model.parameters())))}')
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    criterion = torch.nn.functional.smooth_l1_loss
+    criterion = lambda a, b: torch.nn.functional.smooth_l1_loss(a, b) * 110
 
     # summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 
