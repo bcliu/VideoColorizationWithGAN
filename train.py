@@ -5,13 +5,14 @@ from datetime import datetime
 
 import torch
 import torch.optim
+from skimage.color import lab2rgb
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from dataset.user_guided_dataset import UserGuidedVideoDataset
+from dataset.util import unnormalize_lab
 from model.user_guided_unet import UserGuidedUNet
-from test import load_grayscale, load_grayscale_from_colored, predict
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader,
@@ -58,7 +59,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
             if (batch_idx + 1) % 200 == 0:
                 log_weights(model, summary_writer, iter_idx)
 
-            if (batch_idx + 1) % 500 == 0:
+            if (batch_idx + 1) % 1000 == 0:
                 log_predictions(model, device, summary_writer, iter_idx)
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
@@ -113,30 +114,48 @@ def eval(model, criterion, dataloader, device):
 
 
 def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int):
-    color_images = {
-        'train1': '../../datasets/train/qing-ep38-03894.png',
-        'train2': '../../datasets/train/qing-ep49-04922.png',
-        'test1': '../../datasets/test/qing-ep35-05470.png',
-        'test2': '../../datasets/test/qing-ep15-05389.png',
-    }
-    bw_images = {
-        'crowd': '../bw-frames/00003.png',
-        'mayor': '../bw-frames/00008.png',
-        'cityhall': '../bw-frames/00028.png',
-        'cityhall_far': '../bw-frames/00056.png',
-    }
+    color_dataset = UserGuidedVideoDataset('datasets', augmentation=False, files=[
+        'train/qing-ep38-03894.png',
+        'train/qing-ep49-04922.png',
+        'test/qing-ep35-05470.png',
+        'test/qing-ep15-05389.png',
+    ])
+    bw_dataset = UserGuidedVideoDataset('datasets', augmentation=False, files=[
+        'bw-frames/00003.png',
+        'bw-frames/00008.png',
+        'bw-frames/00028.png',
+        'bw-frames/00056.png',
+    ])
 
     model.eval()
 
-    for k, v in color_images.items():
-        img = load_grayscale_from_colored(v).unsqueeze(0)
-        rgb_output = predict(model, img, device).squeeze()
-        summary_writer.add_image(k, rgb_output, iter_idx)
+    for i in range(len(color_dataset)):
+        L_channel, _, ab_hint, ab_mask = color_dataset[i]
+        L_channel = L_channel.to(device)
+        ab_hint = ab_hint.to(device)
+        ab_mask = ab_mask.to(device)
+        output = model(torch.cat((L_channel.unsqueeze(0),
+                                  ab_hint.unsqueeze(0),
+                                  ab_mask.unsqueeze(0)),
+                                 dim=1)).squeeze()
+        Lab = unnormalize_lab(L_channel, output)
+        Lab = Lab.permute((1, 2, 0))
+        rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))
+        summary_writer.add_image(f'color{i}', rgb, iter_idx)
 
-    for k, v in bw_images.items():
-        img = load_grayscale(v).unsqueeze(0)
-        rgb_output = predict(model, img, device).squeeze()
-        summary_writer.add_image(k, rgb_output, iter_idx)
+    for i in range(len(bw_dataset)):
+        L_channel, _, ab_hint, ab_mask = color_dataset[i]
+        L_channel = L_channel.to(device)
+        ab_hint = torch.zeros_like(ab_hint, device=device)
+        ab_mask = torch.zeros_like(ab_mask, device=device)
+        output = model(torch.cat((L_channel.unsqueeze(0),
+                                  ab_hint.unsqueeze(0),
+                                  ab_mask.unsqueeze(0)),
+                                 dim=1)).squeeze()
+        Lab = unnormalize_lab(L_channel, output)
+        Lab = Lab.permute((1, 2, 0))
+        rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))
+        summary_writer.add_image(f'bw{i}', rgb, iter_idx)
 
     model.train()
 
@@ -145,14 +164,14 @@ def log_weights(model, summary_writer, iter_idx: int):
     encoders = model.module._encoders
     decoders = model.module._decoders
     to_log = {
-        'encoders[0][0].weight': encoders[0][0].weight,
-        'encoders[0][0].weight.grad': encoders[0][0].weight.grad,
-        'encoders[4][0].conv1.weight': encoders[4][0].conv1.weight,
-        'encoders[4][0].conv1.weight.grad': encoders[4][0].conv1.weight.grad,
-        'decoders[0].convs[0].weight': decoders[0].convs[0].weight,
-        'decoders[0].convs[0].weight.grad': decoders[0].convs[0].weight.grad,
-        'decoders[3].convs[0].weight': decoders[3].convs[0].weight,
-        'decoders[3].convs[0].weight.grad': decoders[3].convs[0].weight.grad
+        'encoder1 conv1 weight': encoders['layer1'][0].weight,
+        'encoder1 conv1 grad': encoders['layer1'][0].weight.grad,
+        'encoder4 conv1 weight': encoders['layer4'][0].conv1.weight,
+        'encoder4 conv1 grad': encoders['layer4'][0].conv1.weight.grad,
+        'decoder1 conv1 weight': decoders['layer1'].convs[0].weight,
+        'decoder1 conv1 grad': decoders['layer1'].convs[0].weight.grad,
+        'decoder4 conv1 weight': decoders['layer4'].convs[0].weight,
+        'decoder4 conv1 grad': decoders['layer4'].convs[0].weight.grad
     }
 
     for k, v in to_log.items():

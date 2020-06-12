@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import numpy as np
 import skimage.color
@@ -12,12 +13,15 @@ from dataset.util import normalize_lab
 
 
 class UserGuidedVideoDataset(Dataset):
-    def __init__(self, path, augmentation: bool):
+    def __init__(self, path, augmentation: bool, files: List[str] = None):
         self.path = path
 
-        self.files = []
-        for filename in os.listdir(path):
-            self.files.append(filename)
+        if files is None:
+            self.files = []
+            for filename in os.listdir(path):
+                self.files.append(filename)
+        else:
+            self.files = files
 
         transform_list = [transforms.ToPILImage()]
         if augmentation:

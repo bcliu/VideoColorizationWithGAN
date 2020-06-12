@@ -4,3 +4,4 @@ checkpoint/
 tensorboard/
 pretrained/
 .ipynb_checkpoints/
+datasets
