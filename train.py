@@ -144,7 +144,7 @@ def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int)
         summary_writer.add_image(f'color{i}', rgb, iter_idx)
 
     for i in range(len(bw_dataset)):
-        L_channel, _, ab_hint, ab_mask = color_dataset[i]
+        L_channel, _, ab_hint, ab_mask = bw_dataset[i]
         L_channel = L_channel.to(device)
         ab_hint = torch.zeros_like(ab_hint, device=device)
         ab_mask = torch.zeros_like(ab_mask, device=device)
