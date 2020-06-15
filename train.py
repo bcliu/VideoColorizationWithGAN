@@ -5,15 +5,13 @@ from datetime import datetime
 
 import torch
 import torch.optim
-from skimage.color import lab2rgb
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from test import predict_user_guided
 
 from dataset.user_guided_dataset import UserGuidedVideoDataset
-from dataset.util import unnormalize_lab
 from model.user_guided_unet import UserGuidedUNet
+from test_utils import predict_user_guided
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader,
