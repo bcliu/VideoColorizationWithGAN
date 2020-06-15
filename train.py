@@ -9,6 +9,7 @@ from skimage.color import lab2rgb
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from test import predict_user_guided
 
 from dataset.user_guided_dataset import UserGuidedVideoDataset
 from dataset.util import unnormalize_lab
@@ -16,7 +17,7 @@ from model.user_guided_unet import UserGuidedUNet
 
 
 def train(model, optimizer, criterion, train_dataloader, val_dataloader,
-          args, device, checkpoint_dirname, summary_writer):
+          args, device, checkpoint_dirname, summary_writer, images_for_visualization):
     for epoch in range(args.epochs):
         tqdm.write(f'Epoch {epoch}')
 
@@ -60,7 +61,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
                 log_weights(model, summary_writer, iter_idx)
 
             if (batch_idx + 1) % 1000 == 0:
-                log_predictions(model, device, summary_writer, iter_idx)
+                log_predictions(model, device, images_for_visualization, summary_writer, iter_idx)
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
                 torch.save({
@@ -113,43 +114,15 @@ def eval(model, criterion, dataloader, device):
     return running_loss / len(dataloader_tqdm)
 
 
-def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int):
-    color_dataset = UserGuidedVideoDataset('datasets', augmentation=False, files=[
-        'train/qing-ep38-03894.png',
-        'train/qing-ep49-04922.png',
-        'test/qing-ep35-05470.png',
-        'test/qing-ep15-05389.png',
-    ])
-    bw_dataset = UserGuidedVideoDataset('datasets', augmentation=False, files=[
-        'bw-frames/00003.png',
-        'bw-frames/00008.png',
-        'bw-frames/00028.png',
-        'bw-frames/00056.png',
-    ])
-
+def log_predictions(model, device, images_for_visualization, summary_writer: SummaryWriter, iter_idx: int):
     model.eval()
 
-    for i in range(len(color_dataset)):
-        L_channel, _, ab_hint, ab_mask = color_dataset[i]
-        L_channel = L_channel.to(device)
-        ab_hint = ab_hint.to(device)
-        ab_mask = ab_mask.to(device)
-        output = model(L_channel.unsqueeze(0), ab_hint.unsqueeze(0), ab_mask.unsqueeze(0)).squeeze()
-        Lab = unnormalize_lab(L_channel, output)
-        Lab = Lab.permute((1, 2, 0))
-        rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))
-        summary_writer.add_image(f'color{i}', rgb, iter_idx)
-
-    for i in range(len(bw_dataset)):
-        L_channel, _, ab_hint, ab_mask = bw_dataset[i]
-        L_channel = L_channel.to(device)
-        ab_hint = torch.zeros_like(ab_hint, device=device)
-        ab_mask = torch.zeros_like(ab_mask, device=device)
-        output = model(L_channel.unsqueeze(0), ab_hint.unsqueeze(0), ab_mask.unsqueeze(0)).squeeze()
-        Lab = unnormalize_lab(L_channel, output)
-        Lab = Lab.permute((1, 2, 0))
-        rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))
-        summary_writer.add_image(f'bw{i}', rgb, iter_idx)
+    for name, images in images_for_visualization.items():
+        for i in range(len(images)):
+            L_channel, ab_channels, ab_hint, ab_mask = images[i]
+            rgb = predict_user_guided(model, device, L_channel.unsqueeze(0),
+                                      ab_hint.unsqueeze(0), ab_mask.unsqueeze(0))
+            summary_writer.add_image(f'{name}{i}', rgb, iter_idx, dataformats='HWC')
 
     model.train()
 
@@ -222,6 +195,21 @@ def main():
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
+    images_for_visualization = {
+        'color': UserGuidedVideoDataset('datasets', augmentation=False, files=[
+            'train/qing-ep38-03894.png',
+            'train/qing-ep49-04922.png',
+            'test/qing-ep35-05470.png',
+            'test/qing-ep15-05389.png',
+        ]),
+        'grayscale': UserGuidedVideoDataset('datasets', augmentation=False, files=[
+            'bw-frames/test/00003.png',
+            'bw-frames/test/00008.png',
+            'bw-frames/test/00028.png',
+            'bw-frames/test/00056.png',
+        ])
+    }
+
     model = UserGuidedUNet().to(device)
 
     if args.freeze_encoder:
@@ -241,7 +229,7 @@ def main():
     # summary_writer.add_graph(model.module, next(iter(train_dataloader))[0].to(device))
 
     train(model, optimizer, criterion, train_dataloader, val_dataloader, args, device,
-          checkpoint_dirname, summary_writer)
+          checkpoint_dirname, summary_writer, images_for_visualization)
 
     tqdm.write('Evaluating on test...')
     eval(model, criterion, test_dataloader, device)

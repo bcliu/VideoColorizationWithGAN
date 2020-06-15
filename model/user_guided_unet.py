@@ -45,6 +45,10 @@ class UserGuidedUNet(nn.Module):
         assert ab_hint.shape[1] == 2
         assert ab_mask.shape[1] == 1
 
+        # Inputs should have been normalized
+        assert L_channel.min() >= -1 and L_channel.max() <= 1
+        assert ab_hint.min() >= -1 and ab_hint.max() <= 1
+
         x = torch.cat((L_channel, ab_hint, ab_mask), dim=1)
         encoder_outputs = []
         for _, encoder in self._encoders.items():

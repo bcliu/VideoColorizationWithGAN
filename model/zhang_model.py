@@ -159,4 +159,4 @@ class SIGGRAPHGenerator(nn.Module):
             conv10_2 = self.model10(conv10_up)
             out_reg = self.model_out(conv10_2)
 
-        return out_class, out_reg
+        return out_reg  # Ignoring out_class for now

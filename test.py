@@ -1,6 +1,8 @@
 import torch
 from skimage import io
 from torchvision import transforms
+from skimage.color import lab2rgb
+from dataset.util import unnormalize_lab
 
 from dataset.video_dataset import colored_to_grayscale, normalize, imagenet_mean, imagenet_std
 
@@ -32,6 +34,30 @@ def predict(model, image, device):
         output = unnormalize(model(image.to(device)))
     clamped = torch.clamp(output, 0, 1)
     return clamped
+
+
+def predict_user_guided(model, device, input_L, input_ab, input_mask):
+    """
+
+    :param model:
+    :param device:
+    :param input_L: Normalized L channel
+    :param input_ab: Normalized ab channels
+    :param input_mask:
+    :return:
+    """
+    input_L = input_L.to(device)
+    input_ab = input_ab.to(device)
+    input_mask = input_mask.to(device)
+
+    output = model(input_L, input_ab, input_mask)
+    output = output.squeeze()
+    input_L = input_L.squeeze(dim=0)
+
+    Lab = unnormalize_lab(input_L, output)
+    Lab = Lab.permute((1, 2, 0))
+    rgb = lab2rgb(Lab.detach().cpu().numpy())
+    return rgb
 
 
 def main():
