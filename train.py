@@ -36,7 +36,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
             optimizer.zero_grad()
 
             with torch.set_grad_enabled(True):
-                output = model(torch.cat((L_channel, ab_hint, ab_mask), dim=1))
+                output = model(L_channel, ab_hint, ab_mask)
                 loss = criterion(ab_channels, output)
                 loss.backward()
                 optimizer.step()
@@ -102,7 +102,7 @@ def eval(model, criterion, dataloader, device):
         ab_mask = ab_mask.to(device)
 
         with torch.no_grad():
-            output = model(torch.cat((L_channel, ab_hint, ab_mask), dim=1))
+            output = model(L_channel, ab_hint, ab_mask)
             loss = criterion(ab_channels, output)
 
         running_loss += loss.item()
@@ -134,10 +134,7 @@ def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int)
         L_channel = L_channel.to(device)
         ab_hint = ab_hint.to(device)
         ab_mask = ab_mask.to(device)
-        output = model(torch.cat((L_channel.unsqueeze(0),
-                                  ab_hint.unsqueeze(0),
-                                  ab_mask.unsqueeze(0)),
-                                 dim=1)).squeeze()
+        output = model(L_channel.unsqueeze(0), ab_hint.unsqueeze(0), ab_mask.unsqueeze(0)).squeeze()
         Lab = unnormalize_lab(L_channel, output)
         Lab = Lab.permute((1, 2, 0))
         rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))
@@ -148,10 +145,7 @@ def log_predictions(model, device, summary_writer: SummaryWriter, iter_idx: int)
         L_channel = L_channel.to(device)
         ab_hint = torch.zeros_like(ab_hint, device=device)
         ab_mask = torch.zeros_like(ab_mask, device=device)
-        output = model(torch.cat((L_channel.unsqueeze(0),
-                                  ab_hint.unsqueeze(0),
-                                  ab_mask.unsqueeze(0)),
-                                 dim=1)).squeeze()
+        output = model(L_channel.unsqueeze(0), ab_hint.unsqueeze(0), ab_mask.unsqueeze(0)).squeeze()
         Lab = unnormalize_lab(L_channel, output)
         Lab = Lab.permute((1, 2, 0))
         rgb = torch.tensor(lab2rgb(Lab.detach().cpu().numpy())).permute((2, 0, 1))

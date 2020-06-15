@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torchvision import models
 
@@ -39,7 +40,12 @@ class UserGuidedUNet(nn.Module):
             nn.Tanh()
         )
 
-    def forward(self, x):
+    def forward(self, L_channel, ab_hint, ab_mask):
+        assert L_channel.shape[1] == 1
+        assert ab_hint.shape[1] == 2
+        assert ab_mask.shape[1] == 1
+
+        x = torch.cat((L_channel, ab_hint, ab_mask), dim=1)
         encoder_outputs = []
         for _, encoder in self._encoders.items():
             encoder_outputs.append(encoder(x if len(encoder_outputs) == 0 else encoder_outputs[-1]))
