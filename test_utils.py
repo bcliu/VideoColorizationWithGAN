@@ -36,7 +36,7 @@ def predict(model, image, device):
     return clamped
 
 
-def predict_user_guided(model, device, input_L, input_ab, input_mask, ab_multiplier):
+def predict_user_guided(model, device, input_L, input_ab, input_mask, ab_multiplier=1.0):
     """
 
     :param model:

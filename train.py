@@ -117,7 +117,7 @@ def log_predictions(model, device, images_for_visualization, summary_writer: Sum
 
     for name, images in images_for_visualization.items():
         for i in range(len(images)):
-            L_channel, ab_channels, ab_hint, ab_mask = images[i]
+            L_channel, ab_channels, ab_hint, ab_mask, _ = images[i]
             rgb = predict_user_guided(model, device, L_channel.unsqueeze(0),
                                       ab_hint.unsqueeze(0), ab_mask.unsqueeze(0))
             summary_writer.add_image(f'{name}{i}', rgb, iter_idx, dataformats='HWC')
