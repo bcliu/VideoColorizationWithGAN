@@ -13,7 +13,7 @@ from dataset.util import normalize_lab
 
 
 class UserGuidedVideoDataset(Dataset):
-    def __init__(self, path, augmentation: bool, files: List[str] = None):
+    def __init__(self, path, augmentation: bool, files: List[str] = None, crop_to_fit: bool = True):
         self.path = path
 
         if files is None:
@@ -31,6 +31,7 @@ class UserGuidedVideoDataset(Dataset):
             ]
         self.augmentation_applied = augmentation
         self.augmentation = transforms.Compose(transform_list)
+        self.crop_to_fit = crop_to_fit
 
     def __getitem__(self, index):
         path = os.path.join(self.path, self.files[index])
@@ -38,13 +39,13 @@ class UserGuidedVideoDataset(Dataset):
         lab = skimage.color.rgb2lab(rgb).astype(np.float32)
         lab = torch.tensor(lab).permute((2, 0, 1))
 
-        if not self.augmentation_applied:
+        if self.crop_to_fit and not self.augmentation_applied:
             lab = self._crop(lab)
 
         L_channel, ab_channels = normalize_lab(lab)
 
-        ab_hint, ab_mask, _ = sample_color_hints(ab_channels)
-        return L_channel, ab_channels, ab_hint, ab_mask
+        ab_hint, ab_mask, bounding_boxes = sample_color_hints(ab_channels)
+        return L_channel, ab_channels, ab_hint, ab_mask, bounding_boxes
 
     def __len__(self):
         return len(self.files)

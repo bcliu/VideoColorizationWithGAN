@@ -29,6 +29,6 @@ def sample_color_hints(ab_channels):
         ab_hint[:, h:(h + patch_size), w:(w + patch_size)] = average
         ab_mask[:, h:(h + patch_size), w:(w + patch_size)] = 1
 
-        bounding_boxes.append((h, w, h + patch_size, w + patch_size))
+        bounding_boxes.append((h, w, patch_size))
 
     return ab_hint, ab_mask, bounding_boxes

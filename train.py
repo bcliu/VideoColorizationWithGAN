@@ -26,7 +26,7 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
 
         dataloader_tqdm = tqdm(train_dataloader)
         for batch_idx, batch in enumerate(dataloader_tqdm):
-            L_channel, ab_channels, ab_hint, ab_mask = batch
+            L_channel, ab_channels, ab_hint, ab_mask, _ = batch
             L_channel = L_channel.to(device)
             ab_channels = ab_channels.to(device)
             ab_hint = ab_hint.to(device)
@@ -94,7 +94,7 @@ def eval(model, criterion, dataloader, device):
 
     dataloader_tqdm = tqdm(dataloader)
     for batch_idx, batch in enumerate(dataloader_tqdm):
-        L_channel, ab_channels, ab_hint, ab_mask = batch
+        L_channel, ab_channels, ab_hint, ab_mask, _ = batch
         L_channel = L_channel.to(device)
         ab_channels = ab_channels.to(device)
         ab_hint = ab_hint.to(device)
