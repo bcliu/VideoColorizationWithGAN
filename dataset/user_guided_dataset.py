@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Tuple
 
 import numpy as np
 import skimage.color
@@ -13,7 +13,8 @@ from dataset.util import normalize_lab
 
 
 class UserGuidedVideoDataset(Dataset):
-    def __init__(self, path, augmentation: bool, files: List[str] = None, crop_to_fit: bool = True):
+    def __init__(self, path, files: List[str] = None, crop_to_fit: bool = True,
+                 random_crop=(320, 320), resize_to: int = None):
         self.path = path
 
         if files is None:
@@ -24,12 +25,16 @@ class UserGuidedVideoDataset(Dataset):
             self.files = files
 
         transform_list = [transforms.ToPILImage()]
-        if augmentation:
+
+        if resize_to is not None:
+            transform_list += [transforms.Resize(resize_to)]
+
+        if random_crop is not None:
             transform_list += [
-                transforms.RandomCrop((320, 320)),
+                transforms.RandomCrop(random_crop),
                 transforms.RandomHorizontalFlip(),
             ]
-        self.augmentation_applied = augmentation
+        self.augmentation_applied = random_crop is not None
         self.augmentation = transforms.Compose(transform_list)
         self.crop_to_fit = crop_to_fit
 

@@ -186,21 +186,21 @@ def main():
     with open(os.path.join(checkpoint_dirname, 'args.json'), 'w') as f:
         json.dump(args.__dict__, f, indent=4)
 
-    train_dataset = UserGuidedVideoDataset(args.train, augmentation=True)
-    val_dataset = UserGuidedVideoDataset(args.val, augmentation=False)
-    test_dataset = UserGuidedVideoDataset(args.test, augmentation=False)
+    train_dataset = UserGuidedVideoDataset(args.train)
+    val_dataset = UserGuidedVideoDataset(args.val, random_crop=None)
+    test_dataset = UserGuidedVideoDataset(args.test, random_crop=None)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
     test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
 
     images_for_visualization = {
-        'color': UserGuidedVideoDataset('datasets', augmentation=False, files=[
+        'color': UserGuidedVideoDataset('datasets', random_crop=None, files=[
             'train/qing-ep38-03894.png',
             'train/qing-ep49-04922.png',
             'test/qing-ep35-05470.png',
             'test/qing-ep15-05389.png',
         ]),
-        'grayscale': UserGuidedVideoDataset('datasets', augmentation=False, files=[
+        'grayscale': UserGuidedVideoDataset('datasets', random_crop=None, files=[
             'bw-frames/test/00003.png',
             'bw-frames/test/00008.png',
             'bw-frames/test/00028.png',
