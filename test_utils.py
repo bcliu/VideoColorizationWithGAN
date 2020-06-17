@@ -36,7 +36,7 @@ def predict(model, image, device):
     return clamped
 
 
-def predict_user_guided(model, device, input_L, input_ab, input_mask):
+def predict_user_guided(model, device, input_L, input_ab, input_mask, ab_multiplier):
     """
 
     :param model:
@@ -54,7 +54,7 @@ def predict_user_guided(model, device, input_L, input_ab, input_mask):
     output = output.squeeze()
     input_L = input_L.squeeze(dim=0)
 
-    Lab = unnormalize_lab(input_L, output)
+    Lab = unnormalize_lab(input_L, output * ab_multiplier)
     Lab = Lab.permute((1, 2, 0))
     rgb = lab2rgb(Lab.detach().cpu().numpy())
     return rgb
