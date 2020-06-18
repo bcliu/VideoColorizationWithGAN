@@ -173,9 +173,9 @@ def main():
     print(f'Saving checkpoints every {args.checkpoint_epoch_interval} epochs and {args.checkpoint_iter_interval} iterations')
     print(f'Running on {device.type}')
 
-    experiment_name = 'lr{}_{}{}'.format(
-        args.lr,
+    experiment_name = '{}_lr{}{}'.format(
         str(datetime.now())[:-7].replace(" ", "-").replace(":", "-"),
+        args.lr,
         '' if args.experiment_prefix is None else f'_{args.experiment_prefix}'
     )
 
