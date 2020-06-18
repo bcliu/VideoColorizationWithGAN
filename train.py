@@ -153,6 +153,7 @@ def main():
     parser.add_argument('--lr', help='Learning rate', default=0.001, type=float)
     parser.add_argument('--batch-size', default=1, type=int)
     parser.add_argument('--freeze-encoder', default=False, action='store_true')
+    parser.add_argument('--resize-input-and-larger-crop', default=False, action='store_true')
     parser.add_argument('--num-workers', help='Number of data loading workers', default=1, type=int)
     parser.add_argument('--cuda', default=False, action='store_true')
     parser.add_argument('--cuda-device-ids', default='0')
@@ -186,7 +187,14 @@ def main():
     with open(os.path.join(checkpoint_dirname, 'args.json'), 'w') as f:
         json.dump(args.__dict__, f, indent=4)
 
-    train_dataset = UserGuidedVideoDataset(args.train)
+    if args.resize_input_and_larger_crop:
+        train_random_crop = (320, 480)
+        train_resize = 320
+    else:
+        train_random_crop = (320, 320)
+        train_resize = None
+
+    train_dataset = UserGuidedVideoDataset(args.train, random_crop=train_random_crop, resize_to=train_resize)
     val_dataset = UserGuidedVideoDataset(args.val, random_crop=None)
     test_dataset = UserGuidedVideoDataset(args.test, random_crop=None)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)

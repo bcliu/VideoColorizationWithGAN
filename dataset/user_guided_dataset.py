@@ -33,6 +33,7 @@ class UserGuidedVideoDataset(Dataset):
             transform_list += [
                 transforms.RandomCrop(random_crop),
                 transforms.RandomHorizontalFlip(),
+                transforms.RandomVerticalFlip(),
             ]
         self.augmentation_applied = random_crop is not None
         self.augmentation = transforms.Compose(transform_list)
