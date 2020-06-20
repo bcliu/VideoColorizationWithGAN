@@ -23,6 +23,7 @@ class UserGuidedVideoDataset(Dataset):
                 self.files.append(filename)
         else:
             self.files = files
+        self.files.sort()
 
         transform_list = [transforms.ToPILImage()]
 
