@@ -11,9 +11,9 @@ from test_utils import predict_user_guided
 device = torch.device('cuda')
 grayscale_path = 'datasets/bw-frames/all'
 keyframe_hints_path = 'datasets/bw-frames/hints'
-output_path = 'datasets/colorized.avi'
+output_path = 'datasets/colorized-zhang-ab0.7.avi'
 model_path = 'checkpoint/siggraph_caffemodel/latest_net_G.pth'
-ab_multiplier = 1.0
+ab_multiplier = 0.7
 
 keyframe_hints_list = []
 for filename in os.listdir(keyframe_hints_path):
@@ -35,7 +35,7 @@ for idx, (L_channel, ab_channels, _, _, _) in enumerate(dataset):
     input_mask = torch.zeros_like(input_L)
 
     rgb = predict_user_guided(model, device, input_L, input_ab, input_mask, ab_multiplier=ab_multiplier)
-    video_writer.write(np.uint8(rgb * 255))
+    video_writer.write(cv2.cvtColor(np.uint8(rgb * 255), cv2.COLOR_RGB2BGR))
 
     print(f'{idx}/{len(dataset)}\r')
 
