@@ -15,12 +15,10 @@ from dataset.util import normalize_lab
 class UserGuidedVideoDataset(Dataset):
     def __init__(self, path, files: List[str] = None, crop_to_fit: bool = True,
                  random_crop=(320, 320), resize_to: int = None):
-        self.path = path
-
         if files is None:
             self.files = []
-            for filename in os.listdir(path):
-                self.files.append(filename)
+            for root, subdirs, walked_files in os.walk(path):
+                self.files += [os.path.join(root, file) for file in walked_files]
         else:
             self.files = files
         self.files.sort()
@@ -32,7 +30,7 @@ class UserGuidedVideoDataset(Dataset):
 
         if random_crop is not None:
             transform_list += [
-                transforms.RandomCrop(random_crop),
+                transforms.RandomCrop(random_crop, pad_if_needed=True),
                 transforms.RandomHorizontalFlip(),
                 transforms.RandomVerticalFlip(),
             ]
@@ -41,7 +39,7 @@ class UserGuidedVideoDataset(Dataset):
         self.crop_to_fit = crop_to_fit
 
     def __getitem__(self, index):
-        path = os.path.join(self.path, self.files[index])
+        path = self.files[index]
         rgb = self.augmentation(io.imread(path))
         lab = skimage.color.rgb2lab(rgb).astype(np.float32)
         lab = torch.tensor(lab).permute((2, 0, 1))

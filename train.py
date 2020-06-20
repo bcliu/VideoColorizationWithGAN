@@ -188,13 +188,11 @@ def main():
         json.dump(args.__dict__, f, indent=4)
 
     if args.resize_input_and_larger_crop:
-        train_random_crop = (320, 480)
         train_resize = 320
     else:
-        train_random_crop = (320, 320)
         train_resize = None
 
-    train_dataset = UserGuidedVideoDataset(args.train, random_crop=train_random_crop, resize_to=train_resize)
+    train_dataset = UserGuidedVideoDataset(args.train, random_crop=(320, 320), resize_to=train_resize)
     val_dataset = UserGuidedVideoDataset(args.val, random_crop=None)
     test_dataset = UserGuidedVideoDataset(args.test, random_crop=None)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)

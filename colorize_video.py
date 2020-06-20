@@ -7,12 +7,14 @@ import torch
 from dataset.user_guided_dataset import UserGuidedVideoDataset
 from model.zhang_model import SIGGRAPHGenerator
 from test_utils import predict_user_guided
+from model.user_guided_unet import UserGuidedUNet
 
 device = torch.device('cuda')
 grayscale_path = 'datasets/bw-frames/all'
 keyframe_hints_path = 'datasets/bw-frames/hints'
-output_path = 'datasets/colorized-zhang-ab0.7.avi'
+output_path = 'datasets/colorized-userguide-qss-ab0.7.avi'
 model_path = 'checkpoint/siggraph_caffemodel/latest_net_G.pth'
+# model_path = 'checkpoint/2020-06-18-15-44-09_lr1e-05_userguide_romantic/epoch25_end.pt'
 ab_multiplier = 0.7
 
 keyframe_hints_list = []
@@ -25,6 +27,8 @@ video_writer = cv2.VideoWriter(output_path, 0, 29.97, (480, 352))
 saved_model = torch.load(model_path, map_location=device)
 model = SIGGRAPHGenerator(4, 2)
 model.load_state_dict(saved_model)
+# model = torch.nn.DataParallel(UserGuidedUNet())
+# model.load_state_dict(saved_model['model_state_dict'])
 model = model.to(device)
 
 dataset = UserGuidedVideoDataset(grayscale_path, random_crop=None)
