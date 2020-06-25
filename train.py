@@ -55,11 +55,11 @@ def train(model, optimizer, criterion, train_dataloader, val_dataloader,
                                           iter_idx)
                 batch_block_loss = 0
 
-            if (batch_idx + 1) % 200 == 0:
-                log_weights(model, summary_writer, iter_idx)
+            #if (batch_idx + 1) % 200 == 0:
+            #    log_weights(model, summary_writer, iter_idx)
 
-            if (batch_idx + 1) % 1000 == 0:
-                log_predictions(model, device, images_for_visualization, summary_writer, iter_idx)
+            #if (batch_idx + 1) % 1000 == 0:
+            #    log_predictions(model, device, images_for_visualization, summary_writer, iter_idx)
 
             if args.checkpoint_iter_interval is not None and (batch_idx + 1) % args.checkpoint_iter_interval == 0:
                 torch.save({
@@ -187,12 +187,7 @@ def main():
     with open(os.path.join(checkpoint_dirname, 'args.json'), 'w') as f:
         json.dump(args.__dict__, f, indent=4)
 
-    if args.resize_input_and_larger_crop:
-        train_resize = 320
-    else:
-        train_resize = None
-
-    train_dataset = UserGuidedVideoDataset(args.train, random_crop=(320, 320), resize_to=train_resize)
+    train_dataset = UserGuidedVideoDataset(args.train, random_crop=(288, 288))
     val_dataset = UserGuidedVideoDataset(args.val, random_crop=None)
     test_dataset = UserGuidedVideoDataset(args.test, random_crop=None)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)

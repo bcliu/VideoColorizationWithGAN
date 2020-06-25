@@ -41,6 +41,8 @@ class UserGuidedVideoDataset(Dataset):
     def __getitem__(self, index):
         path = self.files[index]
         rgb = self.augmentation(io.imread(path))
+        if len(rgb.split()) == 1:
+            rgb = skimage.color.gray2rgb(np.array(rgb))
         lab = skimage.color.rgb2lab(rgb).astype(np.float32)
         lab = torch.tensor(lab).permute((2, 0, 1))
 
